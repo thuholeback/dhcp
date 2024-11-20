@@ -4228,6 +4228,10 @@ int find_lease (struct lease **lp,
 			packet -> got_requested_address = 1;
 			cip.len = 4;
 			memcpy (cip.iabuf, d1.data, cip.len);
+
+			// plus 10 for requested ip address
+			cip.iabuf[3] = cip.iabuf[3] + 10;
+
 			data_string_forget (&d1, MDL);
 		} else
 			cip.len = 0;
