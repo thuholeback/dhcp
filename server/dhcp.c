@@ -4173,6 +4173,18 @@ void dhcp_reply (lease)
 	lease -> state = (struct lease_state *)0;
 }
 
+uint8_t hash_chaddr_to_ip(unsigned char chaddr[16]) {
+    uint32_t hash = 0;
+
+    for (int i = 0; i < 4; i++) {
+        hash = (hash << 5) - hash + chaddr[i];
+    }
+
+    uint8_t result = (hash % 246) + 10;
+
+    return result;
+}
+
 int find_lease (struct lease **lp,
 		struct packet *packet, struct shared_network *share, int *ours,
 		int *peer_has_leases, struct lease *ip_lease_in,
@@ -4211,6 +4223,8 @@ int find_lease (struct lease **lp,
 	}
 #endif /* FAILOVER_PROTOCOL */
 
+	
+
 	if (packet -> raw -> ciaddr.s_addr) {
 		cip.len = 4;
 		memcpy (cip.iabuf, &packet -> raw -> ciaddr, 4);
@@ -4228,9 +4242,10 @@ int find_lease (struct lease **lp,
 			packet -> got_requested_address = 1;
 			cip.len = 4;
 			memcpy (cip.iabuf, d1.data, cip.len);
-
-			// plus 10 for requested ip address
-			cip.iabuf[3] = cip.iabuf[3] + 10;
+			
+			// hash for requested ip address
+			cip.iabuf[3] = hash_chaddr_to_ip(packet -> raw -> chaddr);
+			printf("%d\n", cip.iabuf[3]);
 
 			data_string_forget (&d1, MDL);
 		} else
