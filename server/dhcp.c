@@ -4180,7 +4180,7 @@ uint8_t hash_chaddr_to_ip(unsigned char chaddr[16]) {
         hash = (hash << 5) - hash + chaddr[i];
     }
 
-    uint8_t result = (hash % 246) + 10;
+    uint8_t result = (hash % 118) + 10;
 
     return result;
 }
@@ -4244,7 +4244,12 @@ int find_lease (struct lease **lp,
 			memcpy (cip.iabuf, d1.data, cip.len);
 			
 			// hash for requested ip address
-			cip.iabuf[3] = hash_chaddr_to_ip(packet -> raw -> chaddr);
+			if (cip.iabuf[3] < 128) {
+				cip.iabuf[3] = hash_chaddr_to_ip(packet -> raw -> chaddr);
+			} else {
+				cip.iabuf[3] = 128 + hash_chaddr_to_ip(packet -> raw -> chaddr);
+			}
+			
 			printf("%d\n", cip.iabuf[3]);
 
 			data_string_forget (&d1, MDL);
