@@ -4173,16 +4173,36 @@ void dhcp_reply (lease)
 	lease -> state = (struct lease_state *)0;
 }
 
-uint8_t hash_chaddr_to_ip(unsigned char chaddr[16]) {
-    uint32_t hash = 0;
-
-    for (int i = 0; i < 4; i++) {
-        hash = (hash << 5) - hash + chaddr[i];
+int mac2ip(const char *hw_addr, unsigned char *ip_addr) {
+    FILE *file = fopen("/root/mac2host.csv", "r");
+    if (!file) {
+        perror("Failed to open CSV file");
+        return -1;
     }
 
-    uint8_t result = (hash % 118) + 10;
+    char line[50];
+    char mac_str[17];
+	char ip_str[15];
+    // skip the head of csv file
+    fgets(line, sizeof(line), file);
 
-    return result;
+    while (fgets(line, sizeof(line), file)) {
+		sscanf(line, "%[^,],%s", mac_str, ip_str);
+		// find matched mac address
+		if (strcmp(mac_str, hw_addr) == 0) {
+			int b1, b2, b3, b4;
+			sscanf(ip_str, "%d.%d.%d.%d", &b1, &b2, &b3, &b4);
+			ip_addr[0] = (char)b1;
+			ip_addr[1] = (char)b2;
+			ip_addr[2] = (char)b3;
+			ip_addr[3] = (char)b4;
+			fclose(file);
+			return 0;
+		}
+    }
+
+    fclose(file);
+    return -1;
 }
 
 int find_lease (struct lease **lp,
@@ -4242,15 +4262,16 @@ int find_lease (struct lease **lp,
 			packet -> got_requested_address = 1;
 			cip.len = 4;
 			memcpy (cip.iabuf, d1.data, cip.len);
+
+			char *hw_addr = print_hw_addr (packet -> raw -> htype,
+				   packet -> raw -> hlen,
+				   packet -> raw -> chaddr);
 			
-			// hash for requested ip address
-			if (cip.iabuf[3] < 128) {
-				cip.iabuf[3] = hash_chaddr_to_ip(packet -> raw -> chaddr);
-			} else {
-				cip.iabuf[3] = 128 + hash_chaddr_to_ip(packet -> raw -> chaddr);
+			int result = mac2ip(hw_addr, cip.iabuf);
+
+			if (result) {
+				printf("Read file /root/mac2host.csv fails.");
 			}
-			
-			printf("%d\n", cip.iabuf[3]);
 
 			data_string_forget (&d1, MDL);
 		} else
