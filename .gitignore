@@ -28,7 +28,6 @@ ltmain.sh
 omapip/svtest
 relay/dhcrelay
 relay/tests/relay_unittests
-server/dhcpd
 server/tests/dhcpd_unittests
 server/tests/hash_unittests
 server/tests/legacy_unittests
